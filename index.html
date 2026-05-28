@@ -64,7 +64,7 @@ function buildShifts(times){
   };
 }
 
-const BASE_MON_THU=8.0,BASE_FRI=7.5;
+const BASE_MON_THU=8.0,BASE_FRI=8.0;
 function getEffPct(y,m,d,s){const pct=s.contractPct||100;if(!s.partTimeStart)return pct;return new Date(y,m,d)>=new Date(s.partTimeStart)?pct:100;}
 function getDailySoll(y,m,d,hols,s){
   if(isWE(y,m,d)||isHol(y,m,d,hols))return 0;
@@ -189,7 +189,7 @@ function MainView({session,entries,adjustments,settings,syncing,lastSync,onSaveE
     const hols=getBremenHolidays(y);
     const c=computeHours(y,m,d,data,hols,settings,shiftTimes);
     if(c.isOTFree&&c.otFreeHours>0){
-      const newAdj={date:key,hours:parseFloat(c.otFreeHours.toFixed(4)),type:"abgefeiert",note:"Überstundenfrei"};
+      const newAdj={date:key,hours:parseFloat(c.otFreeHours.toFixed(4)),type:"abgefeiert",note:data.note?`Überstundenfrei${data.note?" – "+data.note:""}`:"Überstundenfrei"};
       const existing=adjustments.filter(a=>!(a.date===key&&a.note==="Überstundenfrei"));
       await onSaveAdjustments([...existing,newAdj]);
     } else {
@@ -288,8 +288,8 @@ function MainView({session,entries,adjustments,settings,syncing,lastSync,onSaveE
                     <div style={{display:"flex",gap:2}}>{holEve&&<span style={{fontSize:7,color:C.purple,fontWeight:700}}>VFT</span>}{hol&&<span style={{fontSize:7,color:C.purple,fontWeight:700}}>FT</span>}</div>
                   </div>
                   {isDayOff&&!entry&&<div style={{fontSize:9,color:C.green,fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>🌿 TZ-frei</div>}
-                  {shift&&!shift.isOnCall&&!shift.noTimer&&(<div style={{overflow:"hidden"}}><div style={{fontSize:10,color:shift.color,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{shift.icon} {shift.label}</div>{entry.endTime&&<div style={{fontSize:9,color:C.muted,whiteSpace:"nowrap"}}>{fmtT(SHIFTS[entry.shiftType].getStart?.(isFriLike(year,month,d,holidays))||{h:0,m:0})}–{fmtT(entry.endTime)}</div>}{!isFuture&&ch?.overtime>0&&<div style={{fontSize:9,color:C.green,fontWeight:700}}>+{fmtH(ch.overtime)}</div>}{ch?.paidExtra>0&&<div style={{fontSize:8,color:C.amber,fontWeight:600}}>💶{fmtH(ch.paidExtra)}</div>}</div>)}
-                  {shift?.noTimer&&<div style={{fontSize:10,color:shift.color,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{shift.icon} {shift.label}</div>}
+                  {shift&&!shift.isOnCall&&!shift.noTimer&&(<div style={{overflow:"hidden"}}><div style={{fontSize:10,color:shift.color,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{shift.icon} {({"TAGDIENST":"Tagdienst","LANGER_DIENST":"Langer D.","LANGER_DIENST_WE":"Lang WE","VISITENDIENST":"Visite","SPAETDIENST":"Spätd.","RUFBEREITSCHAFT":"Rufb.","UEBERSTUNDENFREI":"ÜStFrei","TEILZEITFREI":"TZ-frei","DIENSTFREI":"Frei","URLAUB":"Urlaub","KRANK":"Krank","FORTBILDUNG":"Fortb."})[entry.shiftType]||shift.label}</div>{entry.endTime&&<div style={{fontSize:9,color:C.muted,whiteSpace:"nowrap"}}>{fmtT(SHIFTS[entry.shiftType].getStart?.(isFriLike(year,month,d,holidays))||{h:0,m:0})}–{fmtT(entry.endTime)}</div>}{!isFuture&&ch?.overtime>0&&<div style={{fontSize:9,color:C.green,fontWeight:700}}>+{fmtH(ch.overtime)}</div>}{ch?.paidExtra>0&&<div style={{fontSize:8,color:C.amber,fontWeight:600}}>💶{fmtH(ch.paidExtra)}</div>}</div>)}
+                  {shift?.noTimer&&<div style={{fontSize:10,color:shift.color,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{shift.icon} {({"UEBERSTUNDENFREI":"ÜStFrei","TEILZEITFREI":"TZ-frei","DIENSTFREI":"Frei","URLAUB":"Urlaub","KRANK":"Krank","FORTBILDUNG":"Fortb."})[entry.shiftType]||shift.label}</div>}
                   {shift?.isOnCall&&<div style={{fontSize:10,color:shift.color,fontWeight:700,whiteSpace:"nowrap"}}>📞{entry.onCallActivationHours>0&&<span style={{color:C.amber}}>{entry.onCallActivationHours}h</span>}</div>}
                 </div>);
               })}
@@ -312,11 +312,10 @@ function MainView({session,entries,adjustments,settings,syncing,lastSync,onSaveE
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
         {[{l:"Gesamtüberstunden",v:`+${fmtH(allOTWithCarryover)}`,c:C.green,bg:C.greenBg,big:true},{l:`Überstunden ${year}`,v:`+${fmtH(yearOvertime)}`,c:C.primaryText,bg:C.primaryLight,big:true},{l:"Gesamtarbeitszeit",v:fmtH(yearWorked),c:C.text,bg:C.card},{l:"Abgebaut/Ausgezahlt",v:fmtH(yearAdjTotal),c:C.amber,bg:C.amberBg},{l:"Sofort ausgezahlt",v:fmtH(yearPaidExtra),c:C.amber,bg:C.amberBg},...(settings.overtimeCarryover?[{l:`Übertrag bis ${settings.overtimeCarryoverDate?new Date(settings.overtimeCarryoverDate).toLocaleDateString("de-DE"):"–"}`,v:`+${fmtH(settings.overtimeCarryover||0)}`,c:C.purple,bg:C.purpleBg}]:[]),{l:"Dienste "+year,v:Object.keys(entries).filter(k=>k.startsWith(String(year))).length+" Tage",c:C.muted,bg:C.card}].map(card=>(<div key={card.l} style={{background:card.bg,borderRadius:12,padding:"11px 12px",border:`1px solid ${C.border}`,boxShadow:`0 1px 4px ${C.primary}10`}}><div style={{fontSize:9,color:C.muted,fontWeight:600,marginBottom:3}}>{card.l.toUpperCase()}</div><div style={{fontSize:card.big?20:15,fontWeight:700,color:card.c}}>{card.v}</div></div>))}
       </div>
-      <button onClick={()=>exportExcel(entries,adjustments,settings)} style={{width:"100%",padding:"10px",background:C.greenBg,border:`1.5px solid #86EFAC`,borderRadius:10,color:C.green,fontSize:13,fontWeight:700,marginBottom:10}}>📥 Alle Daten als Excel exportieren</button>
       <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px",marginBottom:10}}>
         <div style={{fontSize:10,color:C.muted,fontWeight:600,marginBottom:8}}>ÜBERSTUNDEN PRO MONAT {year} (bis heute)</div>
         <div style={{display:"flex",alignItems:"flex-end",gap:3,height:64}}>
-          {monthlyData.map((md,i)=>{const mx=Math.max(...monthlyData.map(m=>m.overtime),1),p2=md.overtime/mx,has=md.overtime>0;return(<div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>{has&&<div style={{fontSize:7,color:C.green,fontWeight:700}}>{fmtH(md.overtime)}</div>}<div style={{width:"100%",height:`${Math.max(p2*42,has?3:1)}px`,background:has?C.green:C.border,borderRadius:"3px 3px 0 0"}}/><div style={{fontSize:9,color:i===month?C.primary:C.faint,fontWeight:i===month?700:400}}>{MS[i]}</div></div>);})}
+          {monthlyData.map((md,i)=>{const mx=Math.max(...monthlyData.map(m=>m.overtime),1),p2=md.overtime/mx,has=md.overtime>0;return(<div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>{has&&<div style={{fontSize:7,color:C.green,fontWeight:700,textAlign:"center",width:"100%"}}>{fmtH(md.overtime)}</div>}<div style={{width:"100%",height:`${Math.max(p2*42,has?3:1)}px`,background:has?C.green:C.border,borderRadius:"3px 3px 0 0"}}/><div style={{fontSize:9,color:i===month?C.primary:C.faint,fontWeight:i===month?700:400,textAlign:"center",width:"100%"}}>{MS[i]}</div></div>);})}
         </div>
       </div>
       <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px",marginBottom:10}}>
