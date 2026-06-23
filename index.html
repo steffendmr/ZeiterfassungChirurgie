@@ -59,6 +59,7 @@ function buildShifts(times){
     TEILZEITFREI:{label:"Teilzeitfrei",icon:"🌿",color:"#16A34A",bg:"#F0FDF4",getStart:()=>null,getEnd:()=>null,hasPaidExtra:false,isOnCall:false,noTimer:true,noSoll:true},
     DIENSTFREI:{label:"Dienstfrei",icon:"🌙",color:"#4F46E5",bg:"#EEF2FF",getStart:()=>null,getEnd:()=>null,hasPaidExtra:false,isOnCall:false,noTimer:true,noSoll:true},
     URLAUB:{label:"Urlaub",icon:"🏖",color:"#0284C7",bg:"#F0F9FF",getStart:()=>null,getEnd:()=>null,hasPaidExtra:false,isOnCall:false,noTimer:true},
+    SPAETDIENSTFREI:{label:"Spätdienstfrei",icon:"🌛",color:"#7C3AED",bg:"#F5F3FF",getStart:()=>null,getEnd:()=>null,hasPaidExtra:false,isOnCall:false,noTimer:true,isSDFree:true},
     KRANK:{label:"Krank",icon:"🤒",color:"#E11D48",bg:"#FFF1F2",getStart:()=>null,getEnd:()=>null,hasPaidExtra:false,isOnCall:false,noTimer:true},
     FORTBILDUNG:{label:"Fortbildung",icon:"📚",color:"#2563EB",bg:"#EFF6FF",getStart:()=>null,getEnd:()=>null,hasPaidExtra:false,isOnCall:false,noTimer:true},
   };
@@ -72,7 +73,7 @@ function getDailySoll(y,m,d,hols,s){
   if(s.partTimeMode==="fixedDay"&&s.fixedDayOff&&new Date(y,m,d).getDay()===Number(s.fixedDayOff)&&pct<100)return 0;
   return(isFriLike(y,m,d,hols)?BASE_FRI:BASE_MON_THU)*(pct/100);
 }
-function calcBreak(gm){return gm>9.5*60?45:30;}
+function calcBreak(gm){if(gm<=6*60)return 0;if(gm>9.5*60)return 45;return 30;}
 const pad=n=>String(n).padStart(2,"0");
 const toMin=t=>t.h*60+t.m;
 const fmtT=t=>`${pad(t.h)}:${pad(t.m)}`;
@@ -85,10 +86,17 @@ function computeHours(y,m,d,entry,hols,settings,shiftTimes){
   const soll=getDailySoll(y,m,d,hols,settings);
   if(!entry)return{net:0,soll,gross:0,breakMin:0,paidExtra:0,overtime:0};
   const SHIFTS=buildShifts(shiftTimes);
-  const shift=SHIFTS[entry.shiftType];
+  const isWeOrHol=isWE(y,m,d)||isHol(y,m,d,hols);
+  const effectiveType=entry.shiftType==="LANGER_DIENST"&&isWeOrHol?"LANGER_DIENST_WE":entry.shiftType;
+  const shift=SHIFTS[effectiveType];
   if(!shift)return{net:0,soll,gross:0,breakMin:0,paidExtra:0,overtime:0};
-  if(shift.isOnCall)return{net:0,soll,gross:0,breakMin:0,paidExtra:0,overtime:0,onCallHours:entry.onCallActivationHours||0};
+  if(shift.isOnCall){
+    const acts=entry.onCallActivations||[];
+    const totalOC=acts.reduce((s,a)=>s+(a.hours||0),0)+(entry.onCallActivationHours||0);
+    return{net:0,soll,gross:0,breakMin:0,paidExtra:0,overtime:0,onCallHours:totalOC};
+  }
   if(shift.isOTFree)return{net:soll,soll,gross:soll,breakMin:0,paidExtra:0,overtime:0,isOTFree:true,otFreeHours:soll};
+  if(shift.isSDFree)return{net:0,soll,gross:0,breakMin:0,paidExtra:0,overtime:0,isSDFree:true,sdFreeHours:soll};
   if(shift.noTimer){const n=shift.noSoll?0:soll;return{net:n,soll,gross:n,breakMin:0,paidExtra:0,overtime:0};}
   const fri=isFriLike(y,m,d,hols);
   const startT=shift.getStart(fri);
@@ -170,7 +178,20 @@ function App(){
   const saveEntry=async(key,data)=>{setEntries(p=>({...p,[key]:data}));await sb.from("entries").upsert({user_id:session.user.id,date_key:key,data:JSON.stringify(data)},{onConflict:"user_id,date_key"});setLastSync(new Date());};
   const deleteEntry=async(key)=>{setEntries(p=>{const n={...p};delete n[key];return n;});await sb.from("entries").delete().eq("user_id",session.user.id).eq("date_key",key);setLastSync(new Date());};
   const saveAdjustments=async(adjs)=>{setAdjustments(adjs);const uid=session.user.id;await sb.from("adjustments").delete().eq("user_id",uid);if(adjs.length>0)await sb.from("adjustments").insert(adjs.map((a,i)=>({user_id:uid,idx:i,data:JSON.stringify(a)})));setLastSync(new Date());};
-  const saveSettings=async(s)=>{setSettings(s);await sb.from("settings").upsert({user_id:session.user.id,data:JSON.stringify(s)},{onConflict:"user_id"});setLastSync(new Date());};
+  const saveSettings=async(s)=>{
+    setSettings(s);
+    try{
+      const res=await sb.from("settings").upsert({user_id:session.user.id,data:JSON.stringify(s)},{onConflict:"user_id"});
+      if(res.error)throw res.error;
+    }catch(e){
+      // retry with insert then update
+      try{
+        await sb.from("settings").delete().eq("user_id",session.user.id);
+        await sb.from("settings").insert({user_id:session.user.id,data:JSON.stringify(s)});
+      }catch(e2){console.error("Settings save error:",e2);}
+    }
+    setLastSync(new Date());
+  };
   if(authLoading)return<div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",color:C.muted,fontSize:15}}>Laden…</div>;
   if(!session)return<LoginScreen onLogin={s=>setSession(s)}/>;
   return<MainView session={session} entries={entries} adjustments={adjustments} settings={settings} syncing={syncing} lastSync={lastSync} onSaveEntry={saveEntry} onDeleteEntry={deleteEntry} onSaveAdjustments={saveAdjustments} onSaveSettings={saveSettings} onLogout={()=>sb.auth.signOut()}/>;
@@ -188,14 +209,47 @@ function MainView({session,entries,adjustments,settings,syncing,lastSync,onSaveE
     const[y,mo,d]=[...key.split("-").map(Number)];const m=mo-1;
     const hols=getBremenHolidays(y);
     const c=computeHours(y,m,d,data,hols,settings,shiftTimes);
+    let newAdjs=[...adjustments];
+
+    // OTFree: auto-book as abgefeiert
     if(c.isOTFree&&c.otFreeHours>0){
-      const newAdj={date:key,hours:parseFloat(c.otFreeHours.toFixed(4)),type:"abgefeiert",note:data.note?`Überstundenfrei${data.note?" – "+data.note:""}`:"Überstundenfrei"};
-      const existing=adjustments.filter(a=>!(a.date===key&&a.note==="Überstundenfrei"));
-      await onSaveAdjustments([...existing,newAdj]);
+      const newAdj={date:key,hours:parseFloat(c.otFreeHours.toFixed(4)),type:"abgefeiert",note:data.note?`Überstundenfrei – ${data.note}`:"Überstundenfrei"};
+      newAdjs=newAdjs.filter(a=>!(a.date===key&&a.note&&a.note.startsWith("Überstundenfrei")));
+      newAdjs.push(newAdj);
     } else {
-      const filtered=adjustments.filter(a=>!(a.date===key&&a.note==="Überstundenfrei"));
-      if(filtered.length!==adjustments.length)await onSaveAdjustments(filtered);
+      newAdjs=newAdjs.filter(a=>!(a.date===key&&a.note&&a.note.startsWith("Überstundenfrei")));
     }
+
+    // Spätdienst: auto-insert Spätdienstfrei on next day + book as abgefeiert
+    if(data.shiftType==="SPAETDIENST"){
+      const nextDay=new Date(y,m,d+1);
+      const ny=nextDay.getFullYear(),nm=nextDay.getMonth(),nd=nextDay.getDate();
+      const nextKey=dateKey(ny,nm,nd);
+      const nextHols=getBremenHolidays(ny);
+      const nextSoll=getDailySoll(ny,nm,nd,nextHols,settings);
+      // Save Spätdienstfrei entry for next day (don't overwrite if already has something)
+      const existingNext=entries[nextKey];
+      if(!existingNext||existingNext.shiftType==="SPAETDIENSTFREI"){
+        await onSaveEntry(nextKey,{shiftType:"SPAETDIENSTFREI",note:"Automatisch eingetragen"});
+      }
+      // Book next day's soll as abgefeiert
+      if(nextSoll>0){
+        const sdNote="Spätdienstfrei";
+        newAdjs=newAdjs.filter(a=>!(a.date===nextKey&&a.note===sdNote));
+        newAdjs.push({date:nextKey,hours:parseFloat(nextSoll.toFixed(4)),type:"abgefeiert",note:sdNote});
+      }
+    } else {
+      // If changed away from Spätdienst, remove auto Spätdienstfrei from next day
+      const nextDay=new Date(y,m,d+1);
+      const nextKey=dateKey(nextDay.getFullYear(),nextDay.getMonth(),nextDay.getDate());
+      const existingNext=entries[nextKey];
+      if(existingNext?.shiftType==="SPAETDIENSTFREI"&&existingNext?.note==="Automatisch eingetragen"){
+        await onDeleteEntry(nextKey);
+      }
+      newAdjs=newAdjs.filter(a=>!(a.date===nextKey&&a.note==="Spätdienstfrei"));
+    }
+
+    if(JSON.stringify(newAdjs)!==JSON.stringify(adjustments))await onSaveAdjustments(newAdjs);
     await onSaveEntry(key,data);
   };
   const handleDeleteEntry=async(key)=>{
@@ -206,9 +260,9 @@ function MainView({session,entries,adjustments,settings,syncing,lastSync,onSaveE
 
   const monthAgg=useCallback((y,m2)=>{
     const hols=getBremenHolidays(y);const dim=new Date(y,m2+1,0).getDate();
-    let overtime=0,worked=0,paidExtra=0;
-    for(let d=1;d<=dim;d++){const e=entries[dateKey(y,m2,d)];if(!e)continue;const c=computeHours(y,m2,d,e,hols,settings,shiftTimes);worked+=c.net;paidExtra+=c.paidExtra;if(new Date(y,m2,d)<=today)overtime+=c.overtime;}
-    return{worked,overtime,paidExtra};
+    let overtime=0,worked=0,paidExtra=0,onCallHours=0;
+    for(let d=1;d<=dim;d++){const e=entries[dateKey(y,m2,d)];if(!e)continue;const c=computeHours(y,m2,d,e,hols,settings,shiftTimes);worked+=c.net;paidExtra+=c.paidExtra;if(c.onCallHours)onCallHours+=c.onCallHours;if(new Date(y,m2,d)<=today)overtime+=c.overtime;}
+    return{worked,overtime,paidExtra,onCallHours};
   },[entries,JSON.stringify(settings),JSON.stringify(shiftTimes),today.toDateString()]);
 
   const monthlyData=useMemo(()=>MS.map((_,m2)=>monthAgg(year,m2)),[year,monthAgg]);
@@ -219,6 +273,7 @@ function MainView({session,entries,adjustments,settings,syncing,lastSync,onSaveE
   const yearOvertime=monthlyData.reduce((s,m)=>s+m.overtime,0);
   const yearPaidExtra=monthlyData.reduce((s,m)=>s+m.paidExtra,0);
   const yearWorked=monthlyData.reduce((s,m)=>s+m.worked,0);
+  const yearOnCallHours=monthlyData.reduce((s,m)=>s+(m.onCallHours||0),0);
   const cur=monthlyData[month];
   const daysInMonth=new Date(year,month+1,0).getDate();
   const firstDow=(new Date(year,month,1).getDay()+6)%7;
@@ -288,9 +343,9 @@ function MainView({session,entries,adjustments,settings,syncing,lastSync,onSaveE
                     <div style={{display:"flex",gap:2}}>{holEve&&<span style={{fontSize:7,color:C.purple,fontWeight:700}}>VFT</span>}{hol&&<span style={{fontSize:7,color:C.purple,fontWeight:700}}>FT</span>}</div>
                   </div>
                   {isDayOff&&!entry&&<div style={{fontSize:9,color:C.green,fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>🌿 TZ-frei</div>}
-                  {shift&&!shift.isOnCall&&!shift.noTimer&&(<div style={{overflow:"hidden"}}><div style={{fontSize:13,lineHeight:1.2}}>{shift.icon}<div style={{fontSize:9,color:shift.color,fontWeight:700,lineHeight:1.1}}>{({"TAGDIENST":"TD","LANGER_DIENST":"LD","LANGER_DIENST_WE":"LD-W","VISITENDIENST":"VD","SPAETDIENST":"SD","RUFBEREITSCHAFT":"Rufb","UEBERSTUNDENFREI":"ÜStF","TEILZEITFREI":"TZF","DIENSTFREI":"Frei","URLAUB":"Url","KRANK":"Krnk","FORTBILDUNG":"Fortb"})[entry.shiftType]||entry.shiftType}</div></div>{entry.endTime&&<div style={{fontSize:9,color:C.muted,whiteSpace:"nowrap"}}>{fmtT(SHIFTS[entry.shiftType].getStart?.(isFriLike(year,month,d,holidays))||{h:0,m:0})}–{fmtT(entry.endTime)}</div>}{!isFuture&&ch?.overtime>0&&<div style={{fontSize:9,color:C.green,fontWeight:700}}>+{fmtH(ch.overtime)}</div>}{ch?.paidExtra>0&&<div style={{fontSize:8,color:C.amber,fontWeight:600}}>💶{fmtH(ch.paidExtra)}</div>}</div>)}
-                  {shift?.noTimer&&<div style={{fontSize:13,lineHeight:1.2}}>{shift.icon}<div style={{fontSize:9,color:shift.color,fontWeight:700,lineHeight:1.1}}>{({"UEBERSTUNDENFREI":"ÜStF","TEILZEITFREI":"TZF","DIENSTFREI":"Frei","URLAUB":"Url","KRANK":"Krnk","FORTBILDUNG":"Fortb","RUFBEREITSCHAFT":"Rufb"})[entry.shiftType]||entry.shiftType}</div></div>}
-                  {shift?.isOnCall&&<div style={{fontSize:10,color:shift.color,fontWeight:700,whiteSpace:"nowrap"}}>📞{entry.onCallActivationHours>0&&<span style={{color:C.amber}}>{entry.onCallActivationHours}h</span>}</div>}
+                  {shift&&!shift.isOnCall&&!shift.noTimer&&(<div style={{overflow:"hidden"}}><div style={{fontSize:13,lineHeight:1.2}}>{shift.icon}<div style={{fontSize:9,color:shift.color,fontWeight:700,lineHeight:1.1}}>{({"TAGDIENST":"TD","LANGER_DIENST":"LD","LANGER_DIENST_WE":"LD-W","VISITENDIENST":"VD","SPAETDIENST":"SD","RUFBEREITSCHAFT":"Rufb","UEBERSTUNDENFREI":"ÜStF","TEILZEITFREI":"TZF","DIENSTFREI":"Frei","URLAUB":"Url","KRANK":"Krnk","FORTBILDUNG":"Fortb"})[entry.shiftType]||entry.shiftType}</div></div>{entry.endTime&&<div style={{fontSize:9,color:C.muted,whiteSpace:"nowrap"}}>{fmtT((SHIFTS[(isWE(year,month,d)||isHol(year,month,d,holidays))&&entry.shiftType==="LANGER_DIENST"?"LANGER_DIENST_WE":entry.shiftType]||SHIFTS[entry.shiftType]).getStart?.(isFriLike(year,month,d,holidays))||{h:0,m:0})}–{fmtT(entry.endTime)}</div>}{!isFuture&&ch?.overtime>0&&<div style={{fontSize:9,color:C.green,fontWeight:700}}>+{fmtH(ch.overtime)}</div>}{ch?.paidExtra>0&&<div style={{fontSize:8,color:C.amber,fontWeight:600}}>💶{fmtH(ch.paidExtra)}</div>}</div>)}
+                  {shift?.noTimer&&<div style={{fontSize:13,lineHeight:1.2}}>{shift.icon}<div style={{fontSize:9,color:shift.color,fontWeight:700,lineHeight:1.1}}>{({"UEBERSTUNDENFREI":"ÜStF","TEILZEITFREI":"TZF","DIENSTFREI":"Frei","URLAUB":"Url","KRANK":"Krnk","FORTBILDUNG":"Fortb","RUFBEREITSCHAFT":"Rufb","SPAETDIENSTFREI":"SDF"})[entry.shiftType]||entry.shiftType}</div></div>}
+                  {shift?.isOnCall&&<div style={{fontSize:10,color:shift.color,fontWeight:700,whiteSpace:"nowrap"}}>📞{ch?.onCallHours>0&&<span style={{color:C.amber,fontSize:9}}>{fmtH(ch.onCallHours)}</span>}</div>}
                 </div>);
               })}
             </div>
@@ -310,7 +365,8 @@ function MainView({session,entries,adjustments,settings,syncing,lastSync,onSaveE
 
     {view==="jahres"&&(<div className="fu" style={{width:"100%",maxWidth:820,margin:"0 auto",padding:"10px 8px",paddingBottom:"calc(16px + env(safe-area-inset-bottom))"}}>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
-        {[{l:"Gesamtüberstunden",v:`+${fmtH(allOTWithCarryover)}`,c:C.green,bg:C.greenBg,big:true},{l:`Überstunden ${year}`,v:`+${fmtH(yearOvertime)}`,c:C.primaryText,bg:C.primaryLight,big:true},{l:"Gesamtarbeitszeit",v:fmtH(yearWorked),c:C.text,bg:C.card},{l:"Abgebaut/Ausgezahlt",v:fmtH(yearAdjTotal),c:C.amber,bg:C.amberBg},{l:"Sofort ausgezahlt",v:fmtH(yearPaidExtra),c:C.amber,bg:C.amberBg},...(settings.overtimeCarryover?[{l:`Übertrag bis ${settings.overtimeCarryoverDate?new Date(settings.overtimeCarryoverDate).toLocaleDateString("de-DE"):"–"}`,v:`+${fmtH(settings.overtimeCarryover||0)}`,c:C.purple,bg:C.purpleBg}]:[]),{l:"Dienste "+year,v:Object.keys(entries).filter(k=>k.startsWith(String(year))).length+" Tage",c:C.muted,bg:C.card}].map(card=>(<div key={card.l} style={{background:card.bg,borderRadius:12,padding:"11px 12px",border:`1px solid ${C.border}`,boxShadow:`0 1px 4px ${C.primary}10`}}><div style={{fontSize:9,color:C.muted,fontWeight:600,marginBottom:3}}>{card.l.toUpperCase()}</div><div style={{fontSize:card.big?20:15,fontWeight:700,color:card.c}}>{card.v}</div></div>))}
+        {[{l:"Gesamtüberstunden",v:`+${fmtH(allOTWithCarryover)}`,c:C.green,bg:C.greenBg,big:true},{l:`Überstunden ${year}`,v:`+${fmtH(yearOvertime)}`,c:C.primaryText,bg:C.primaryLight,big:true},{l:"Gesamtarbeitszeit",v:fmtH(yearWorked),c:C.text,bg:C.card},{l:"Abgebaut/Ausgezahlt",v:fmtH(yearAdjTotal),c:C.amber,bg:C.amberBg},{l:"Sofort ausgezahlt",v:fmtH(yearPaidExtra),c:C.amber,bg:C.amberBg},...(settings.overtimeCarryover?[{l:`Übertrag bis ${settings.overtimeCarryoverDate?new Date(settings.overtimeCarryoverDate).toLocaleDateString("de-DE"):"–"}`,v:`+${fmtH(settings.overtimeCarryover||0)}`,c:C.purple,bg:C.purpleBg}]:[]),{l:"Rufbereitschafts-Einsätze",v:fmtH(yearOnCallHours),c:"#6B7280",bg:C.card},
+              {l:"Dienste "+year,v:Object.keys(entries).filter(k=>k.startsWith(String(year))).length+" Tage",c:C.muted,bg:C.card}].map(card=>(<div key={card.l} style={{background:card.bg,borderRadius:12,padding:"11px 12px",border:`1px solid ${C.border}`,boxShadow:`0 1px 4px ${C.primary}10`}}><div style={{fontSize:9,color:C.muted,fontWeight:600,marginBottom:3}}>{card.l.toUpperCase()}</div><div style={{fontSize:card.big?20:15,fontWeight:700,color:card.c}}>{card.v}</div></div>))}
       </div>
       <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px",marginBottom:10}}>
         <div style={{fontSize:10,color:C.muted,fontWeight:600,marginBottom:8}}>ÜBERSTUNDEN PRO MONAT {year} (bis heute)</div>
@@ -419,12 +475,31 @@ function TI({h,m,onH,onM}){
   return(<div style={{display:"flex",alignItems:"center",gap:3}}><input type="number" min={0} max={23} value={pad(h||0)} onChange={e=>onH(e.target.value)} style={s}/><span style={{color:C.muted,fontWeight:700}}>:</span><input type="number" min={0} max={59} value={pad(m||0)} onChange={e=>onM(e.target.value)} style={s}/></div>);
 }
 
+
+function OnCallActivations({activations,onChange,label}){
+  const add=()=>onChange(prev=>[...prev,{hours:"",note:""}]);
+  const upd=(i,field,val)=>onChange(prev=>prev.map((a,j)=>j===i?{...a,[field]:val}:a));
+  const del=(i)=>onChange(prev=>prev.filter((_,j)=>j!==i));
+  const inp={background:"#FDF0E8",border:`1.5px solid #E8C8AD`,borderRadius:8,padding:"7px 10px",fontSize:13,color:"#2D1A0E",fontFamily:"inherit"};
+  return(<div style={{marginBottom:10}}>
+    <div style={{fontSize:11,color:"#7C3AED",fontWeight:600,marginBottom:6}}>{label||"📞 RUFBEREITSCHAFT – EINSÄTZE (ausgezahlt)"}</div>
+    {activations.map((a,i)=>(<div key={i} style={{display:"flex",gap:6,marginBottom:6,alignItems:"center"}}>
+      <input type="number" min={0} max={24} step={0.5} value={a.hours} onChange={e=>upd(i,"hours",e.target.value)} placeholder="Std." style={{...inp,width:64}}/>
+      <input type="text" value={a.note} onChange={e=>upd(i,"note",e.target.value)} placeholder="Notiz (optional)" style={{...inp,flex:1}}/>
+      <button onClick={()=>del(i)} style={{background:"none",border:"none",color:"#B07A5A",fontSize:18,padding:"0 2px"}}>×</button>
+    </div>))}
+    <button onClick={add} style={{fontSize:11,color:"#7C3AED",background:"none",border:`1px dashed #C4B5FD`,borderRadius:7,padding:"5px 12px",width:"100%"}}>+ Einsatz hinzufügen</button>
+  </div>);
+}
+
 function DayModal({day,entry,holidays,settings,shiftTimes,SHIFTS,onSave,onDelete,onClose}){
   const{year,month,day:d}=day;const dow=new Date(year,month,d).getDay();
   const we=dow===0||dow===6,hol=isHol(year,month,d,holidays),fri=isFriLike(year,month,d,holidays);
-  const[shiftType,setShiftType]=useState(entry?.shiftType||(we?"LANGER_DIENST_WE":"TAGDIENST"));
+  const[shiftType,setShiftType]=useState(entry?.shiftType==="LANGER_DIENST_WE"?"LANGER_DIENST":entry?.shiftType||(we?"LANGER_DIENST":"TAGDIENST"));
   const[endH,setEndH]=useState(entry?.endTime?.h??"");const[endM,setEndM]=useState(entry?.endTime?.m??"");
-  const[onCallH,setOnCallH]=useState(entry?.onCallActivationHours??"");const[note,setNote]=useState(entry?.note||"");
+  const[onCallH,setOnCallH]=useState(entry?.onCallActivationHours??"");
+  const[onCallActivations,setOnCallActivations]=useState(entry?.onCallActivations||(entry?.onCallActivationHours?[{hours:entry.onCallActivationHours,note:""}]:[]));
+  const[note,setNote]=useState(entry?.note||"");
   const shift=SHIFTS[shiftType];const startT=shift?.getStart?.(fri);const fixedEnd=shift?.fixedEnd?.();const defaultEnd=fixedEnd||shift?.getEnd?.(fri);
   const endTime=(endH!==""&&endM!=="")?{h:+endH,m:+endM}:defaultEnd;
   const soll=getDailySoll(year,month,d,holidays,settings);
@@ -436,7 +511,7 @@ function DayModal({day,entry,holidays,settings,shiftTimes,SHIFTS,onSave,onDelete
     if(shift.allPaid){pe=nh;}else if(shift.hasPaidExtra&&fixedEnd){const et=toMin(endTime),ft=toMin(fixedEnd);if(et>ft)pe=(et-ft)/60;ot=Math.max(0,nh-pe-soll);}else if(shift.paidExtraAfterSoll){const ov=nh-soll;if(ov>0)pe=ov;}else{ot=Math.max(0,nh-soll);}
     preview={net:shift.allPaid?0:nh-pe,soll,gross:gm/60,breakMin:bm,paidExtra:pe,overtime:ot,isOTFree:false};
   }
-  const available=Object.entries(SHIFTS).filter(([k,s])=>!(s.weekendOnly&&!we)&&!(k==="LANGER_DIENST_WE"&&!we));
+  const available=Object.entries(SHIFTS).filter(([k,s])=>k!=="LANGER_DIENST_WE");
   const inp={width:"100%",background:C.bg,border:`1.5px solid ${C.border}`,borderRadius:9,padding:"9px 12px",fontSize:13,color:C.text,fontFamily:"inherit"};
   return(<div style={{position:"fixed",inset:0,background:"#2D1A0E60",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:200,backdropFilter:"blur(3px)"}} onClick={e=>e.target===e.currentTarget&&onClose()}>
     <div className="si" style={{background:C.card,borderRadius:"22px 22px 0 0",padding:"16px 14px",width:"100%",maxWidth:520,maxHeight:"92vh",overflowY:"auto",paddingBottom:"max(18px,env(safe-area-inset-bottom))"}}>
@@ -451,10 +526,10 @@ function DayModal({day,entry,holidays,settings,shiftTimes,SHIFTS,onSave,onDelete
           {available.map(([k,s])=>(<button key={k} onClick={()=>setShiftType(k)} style={{padding:"7px 8px",borderRadius:9,textAlign:"left",fontSize:11,fontWeight:600,background:shiftType===k?s.bg:C.bg,border:`1.5px solid ${shiftType===k?s.color:C.border}`,color:shiftType===k?C.text:C.muted}}>{s.icon} {s.label}</button>))}
         </div>
       </div>
-      {startT&&(<div style={{background:C.bg,borderRadius:8,padding:"7px 10px",marginBottom:10,fontSize:12}}><div style={{color:C.muted}}>Start: <strong style={{color:C.text}}>{fmtT(startT)}</strong>{fixedEnd&&<> · Pflichtende: <strong style={{color:C.text}}>{fmtT(fixedEnd)}</strong></>}{!fixedEnd&&defaultEnd&&<> · Planende: <strong style={{color:C.muted}}>{fmtT(defaultEnd)}</strong></>}</div>{shift?.allPaid&&<div style={{color:C.amber,marginTop:2,fontWeight:700}}>💶 Alle Stunden sofort ausgezahlt</div>}{shift?.hasOnCall&&<div style={{color:C.purple,marginTop:2,fontWeight:600}}>📞 Rufbereitschaft nach Dienstende</div>}{shift?.hasPaidExtra&&!shift?.allPaid&&<div style={{color:C.amber,marginTop:2,fontWeight:600}}>💶 Überstunden sofort ausgezahlt</div>}</div>)}
+      {startT&&(<div style={{background:C.bg,borderRadius:8,padding:"7px 10px",marginBottom:10,fontSize:12}}><div style={{color:C.muted}}>Start: <strong style={{color:C.text}}>{fmtT(startT)}</strong>{fixedEnd&&<> · Pflichtende: <strong style={{color:C.text}}>{fmtT(fixedEnd)}</strong></>}{!fixedEnd&&defaultEnd&&<> · Planende: <strong style={{color:C.muted}}>{fmtT(defaultEnd)}</strong></>}</div>{shift?.allPaid&&<div style={{color:C.amber,marginTop:2,fontWeight:700}}>💶 Alle Stunden sofort ausgezahlt</div>}{shift?.hasOnCall&&<div style={{color:C.purple,marginTop:2,fontWeight:600}}>📞 Rufbereitschaft / Präsenz bis 07:00 Folgetag</div>}{shift?.hasOnCall&&shiftType==="SPAETDIENST"&&<div style={{color:"#7C3AED",marginTop:2,fontWeight:600,fontSize:11}}>🌛 Spätdienstfrei wird automatisch am Folgetag eingetragen</div>}{shift?.hasPaidExtra&&!shift?.allPaid&&<div style={{color:C.amber,marginTop:2,fontWeight:600}}>💶 Überstunden sofort ausgezahlt</div>}</div>)}
       {shift?.isOTFree&&<div style={{background:C.amberBg,border:`1px solid ${C.amber}`,borderRadius:8,padding:"8px 11px",marginBottom:10,fontSize:12,color:C.amber,fontWeight:600}}>⭐ Netto-Sollstunden ({fmtH(soll)}) werden automatisch als „Abgefeiert" gebucht.</div>}
       {!shift?.noTimer&&!shift?.isOnCall&&(<div style={{marginBottom:10}}>
-        <div style={{fontSize:11,color:C.muted,fontWeight:600,marginBottom:6}}>{shift?.allPaid?"ENDZEIT (alle Stunden ausgezahlt)":shift?.hasPaidExtra?"TATSÄCHLICHE ENDZEIT":"ENDZEIT (leer = Planende)"}</div>
+        <div style={{fontSize:11,color:C.muted,fontWeight:600,marginBottom:6}}>{shift?.allPaid?"ENDZEIT (alle Stunden ausgezahlt)":shift?.hasPaidExtra?(shiftType==="SPAETDIENST"?"TATSÄCHLICHE ENDZEIT (auch nach 0 Uhr möglich)":"TATSÄCHLICHE ENDZEIT"):"ENDZEIT (leer = Planende)"}</div>
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
           <input type="number" min={0} max={23} value={endH} onChange={e=>setEndH(e.target.value)} placeholder={defaultEnd?pad(defaultEnd.h):"hh"} style={{width:60,background:C.bg,border:`1.5px solid ${C.border}`,borderRadius:9,padding:"9px 6px",fontSize:18,fontWeight:700,color:C.text,textAlign:"center"}}/>
           <span style={{fontSize:20,color:C.muted,fontWeight:700}}>:</span>
@@ -463,8 +538,8 @@ function DayModal({day,entry,holidays,settings,shiftTimes,SHIFTS,onSave,onDelete
           {(endH!==""||endM!=="")&&<button onClick={()=>{setEndH("");setEndM("");}} style={{background:"none",border:"none",color:C.faint,fontSize:18}}>↺</button>}
         </div>
       </div>)}
-      {shift?.isOnCall&&(<div style={{marginBottom:10}}><div style={{fontSize:11,color:C.muted,fontWeight:600,marginBottom:6}}>AKTIVIERUNGSSTUNDEN (ausgezahlt, kein Saldo)</div><input type="number" min={0} max={24} step={0.5} value={onCallH} onChange={e=>setOnCallH(e.target.value)} placeholder="z.B. 1.5" style={inp}/></div>)}
-      {shift?.hasOnCall&&!shift?.isOnCall&&(<div style={{marginBottom:10}}><div style={{fontSize:11,color:C.purple,fontWeight:600,marginBottom:6}}>📞 RUFBEREITSCHAFT – AKTIVIERUNGSSTUNDEN</div><input type="number" min={0} max={24} step={0.5} value={onCallH} onChange={e=>setOnCallH(e.target.value)} placeholder="Einsatzstunden (optional)" style={inp}/></div>)}
+      {shift?.isOnCall&&(<OnCallActivations activations={onCallActivations} onChange={setOnCallActivations} label="AKTIVIERUNGSSTUNDEN (ausgezahlt, kein Saldo)"/>)}
+      {shift?.hasOnCall&&!shift?.isOnCall&&(<OnCallActivations activations={onCallActivations} onChange={setOnCallActivations}/>)}
       {preview&&(<div style={{background:C.bg,borderRadius:9,padding:"10px 11px",marginBottom:10}}>
         <div style={{fontSize:10,color:C.muted,fontWeight:600,marginBottom:6}}>VORSCHAU</div>
         {!preview.isOTFree&&(<div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:6,marginBottom:6}}>{[["BRUTTO",fmtH(preview.gross)],["PAUSE",`${preview.breakMin}min`],["NETTO",fmtH(preview.net)]].map(([l,v])=>(<div key={l}><div style={{fontSize:9,color:C.faint,fontWeight:600}}>{l}</div><div style={{fontSize:13,fontWeight:700,color:C.text}}>{v}</div></div>))}</div>)}
@@ -475,7 +550,7 @@ function DayModal({day,entry,holidays,settings,shiftTimes,SHIFTS,onSave,onDelete
       <div style={{marginBottom:12}}><div style={{fontSize:11,color:C.muted,fontWeight:600,marginBottom:6}}>NOTIZ (optional)</div><input type="text" value={note} onChange={e=>setNote(e.target.value)} placeholder="Station, Einsatz, Bemerkung..." style={inp}/></div>
       <div style={{display:"flex",gap:7}}>
         {entry&&<button onClick={onDelete} style={{padding:"11px 14px",background:C.redBg,border:`1px solid #FECACA`,borderRadius:11,color:C.red,fontSize:13,fontWeight:700}}>Löschen</button>}
-        <button onClick={()=>{const et=(endH!==""&&endM!=="")?{h:+endH,m:+endM}:defaultEnd;onSave({shiftType,endTime:et,onCallActivationHours:onCallH!==""?+onCallH:0,note});}} style={{flex:1,padding:"12px",background:C.primary,border:"none",borderRadius:11,color:"#fff",fontSize:14,fontWeight:700,boxShadow:`0 4px 14px ${C.primary}40`}}>Speichern</button>
+        <button onClick={()=>{const et=(endH!==""&&endM!=="")?{h:+endH,m:+endM}:defaultEnd;const effST=(shiftType==="LANGER_DIENST"&&(we||hol))?"LANGER_DIENST_WE":shiftType;const totalOCH=onCallActivations.reduce((s,a)=>s+(a.hours||0),0);onSave({shiftType:effST,endTime:et,onCallActivationHours:totalOCH,onCallActivations,note});}} style={{flex:1,padding:"12px",background:C.primary,border:"none",borderRadius:11,color:"#fff",fontSize:14,fontWeight:700,boxShadow:`0 4px 14px ${C.primary}40`}}>Speichern</button>
       </div>
     </div>
   </div>);
