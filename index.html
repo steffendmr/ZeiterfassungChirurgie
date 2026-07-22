@@ -49,18 +49,18 @@ const DEFAULT_TIMES={
 function buildShifts(times){
   const t=k=>({...DEFAULT_TIMES[k],...(times&&times[k]?times[k]:{})});
   return{
-    TAGDIENST:{label:"Tagdienst",icon:"☀️",color:"#C2410C",bg:"#FFEDD5",getStart:()=>({h:t("TAGDIENST").startH,m:t("TAGDIENST").startM}),getEnd:fri=>fri?{h:t("TAGDIENST").endFriH,m:t("TAGDIENST").endFriM}:{h:t("TAGDIENST").endH,m:t("TAGDIENST").endM},hasPaidExtra:false,isOnCall:false,editable:true},
-    LANGER_DIENST:{label:"Langer Dienst",icon:"🔆",color:"#A16207",bg:"#FEF08A",getStart:fri=>fri?{h:t("LANGER_DIENST").startFriH,m:t("LANGER_DIENST").startFriM}:{h:t("LANGER_DIENST").startH,m:t("LANGER_DIENST").startM},getEnd:fri=>fri?{h:t("LANGER_DIENST").endFriH,m:t("LANGER_DIENST").endFriM}:{h:t("LANGER_DIENST").endH,m:t("LANGER_DIENST").endM},hasPaidExtra:true,paidExtraAfterSoll:true,isOnCall:false,editable:true},
-    LANGER_DIENST_WE:{label:"Langer Dienst WE",icon:"🌅",color:"#991B1B",bg:"#FECACA",getStart:()=>({h:t("LANGER_DIENST_WE").startH,m:t("LANGER_DIENST_WE").startM}),getEnd:()=>({h:t("LANGER_DIENST_WE").endH,m:t("LANGER_DIENST_WE").endM}),hasPaidExtra:true,paidExtraAfterSoll:true,isOnCall:false,weekendOnly:true,editable:true},
-    VISITENDIENST:{label:"Visitendienst",icon:"🩺",color:"#065F46",bg:"#6EE7B7",getStart:()=>({h:t("VISITENDIENST").startH,m:t("VISITENDIENST").startM}),fixedEnd:()=>({h:t("VISITENDIENST").fixedEndH,m:t("VISITENDIENST").fixedEndM}),hasOnCall:true,hasPaidExtra:true,allPaid:true,isOnCall:false,editable:true},
-    SPAETDIENST:{label:"Spätdienst",icon:"🌆",color:"#4C1D95",bg:"#DDD6FE",getStart:()=>({h:t("SPAETDIENST").startH,m:t("SPAETDIENST").startM}),fixedEnd:()=>({h:t("SPAETDIENST").fixedEndH,m:t("SPAETDIENST").fixedEndM}),hasOnCall:true,hasPaidExtra:true,isOnCall:false,editable:true},
-    RUFBEREITSCHAFT:{label:"Rufbereitschaft",icon:"📞",color:"#374151",bg:"#D1D5DB",getStart:()=>null,getEnd:()=>null,hasPaidExtra:false,isOnCall:true},
+    TAGDIENST:{label:"Tagdienst",icon:"☀️",color:"#9A3412",bg:"#FED7AA",getStart:()=>({h:t("TAGDIENST").startH,m:t("TAGDIENST").startM}),getEnd:fri=>fri?{h:t("TAGDIENST").endFriH,m:t("TAGDIENST").endFriM}:{h:t("TAGDIENST").endH,m:t("TAGDIENST").endM},hasPaidExtra:false,isOnCall:false,editable:true},
+    LANGER_DIENST:{label:"Langer Dienst",icon:"🔆",color:"#78350F",bg:"#FDE68A",getStart:fri=>fri?{h:t("LANGER_DIENST").startFriH,m:t("LANGER_DIENST").startFriM}:{h:t("LANGER_DIENST").startH,m:t("LANGER_DIENST").startM},getEnd:fri=>fri?{h:t("LANGER_DIENST").endFriH,m:t("LANGER_DIENST").endFriM}:{h:t("LANGER_DIENST").endH,m:t("LANGER_DIENST").endM},hasPaidExtra:true,paidExtraAfterSoll:true,isOnCall:false,editable:true},
+    LANGER_DIENST_WE:{label:"Langer Dienst WE",icon:"🌅",color:"#7F1D1D",bg:"#FCA5A5",getStart:()=>({h:t("LANGER_DIENST_WE").startH,m:t("LANGER_DIENST_WE").startM}),getEnd:()=>({h:t("LANGER_DIENST_WE").endH,m:t("LANGER_DIENST_WE").endM}),hasPaidExtra:true,paidExtraAfterSoll:true,isOnCall:false,weekendOnly:true,editable:true},
+    VISITENDIENST:{label:"Visitendienst",icon:"🩺",color:"#064E3B",bg:"#A7F3D0",getStart:()=>({h:t("VISITENDIENST").startH,m:t("VISITENDIENST").startM}),fixedEnd:()=>({h:t("VISITENDIENST").fixedEndH,m:t("VISITENDIENST").fixedEndM}),hasOnCall:true,hasPaidExtra:true,allPaid:true,isOnCall:false,editable:true},
+    SPAETDIENST:{label:"Spätdienst",icon:"🌆",color:"#3B0764",bg:"#C4B5FD",getStart:()=>({h:t("SPAETDIENST").startH,m:t("SPAETDIENST").startM}),fixedEnd:()=>({h:t("SPAETDIENST").fixedEndH,m:t("SPAETDIENST").fixedEndM}),hasOnCall:true,hasPaidExtra:true,isOnCall:false,editable:true},
+    RUFBEREITSCHAFT:{label:"Rufbereitschaft",icon:"📞",color:"#1F2937",bg:"#E5E7EB",getStart:()=>null,getEnd:()=>null,hasPaidExtra:false,isOnCall:true},
     UEBERSTUNDENFREI:{label:"Überstundenfrei",icon:"⭐",color:"#3D6B52",bg:"#A7F3D0",getStart:()=>null,getEnd:()=>null,hasPaidExtra:false,isOnCall:false,noTimer:true,isOTFree:true},
     TEILZEITFREI:{label:"Teilzeitfrei",icon:"🌿",color:"#0F766E",bg:"#CCFBF1",getStart:()=>null,getEnd:()=>null,hasPaidExtra:false,isOnCall:false,noTimer:true,noSoll:true},
     DIENSTFREI:{label:"Dienstfrei",icon:"🌙",color:"#4D7C5F",bg:"#DCFCE7",getStart:()=>null,getEnd:()=>null,hasPaidExtra:false,isOnCall:false,noTimer:true,noSoll:true,isFreiTag:true},
     URLAUB:{label:"Urlaub",icon:"🏖",color:"#0369A1",bg:"#E0F2FE",getStart:()=>null,getEnd:()=>null,hasPaidExtra:false,isOnCall:false,noTimer:true},
-    KRANK:{label:"Krank",icon:"🤒",color:"#9F1239",bg:"#FECDD3",getStart:()=>null,getEnd:()=>null,hasPaidExtra:false,isOnCall:false,noTimer:true},
-    FORTBILDUNG:{label:"Fortbildung",icon:"📚",color:"#1E40AF",bg:"#BFDBFE",getStart:()=>null,getEnd:()=>null,hasPaidExtra:false,isOnCall:false,noTimer:true},
+    KRANK:{label:"Krank",icon:"🤒",color:"#881337",bg:"#FECDD3",getStart:()=>null,getEnd:()=>null,hasPaidExtra:false,isOnCall:false,noTimer:true},
+    FORTBILDUNG:{label:"Fortbildung",icon:"📚",color:"#1E3A8A",bg:"#BFDBFE",getStart:()=>null,getEnd:()=>null,hasPaidExtra:false,isOnCall:false,noTimer:true},
   };
 }
 
@@ -69,8 +69,19 @@ function getEffPct(y,m,d,s){const pct=s.contractPct||100;if(!s.partTimeStart)ret
 function getDailySoll(y,m,d,hols,s){
   if(isWE(y,m,d)||isHol(y,m,d,hols))return 0;
   const pct=getEffPct(y,m,d,s);
-  if(s.partTimeMode==="fixedDay"&&s.fixedDayOff&&new Date(y,m,d).getDay()===Number(s.fixedDayOff)&&pct<100)return 0;
-  return(isFriLike(y,m,d,hols)?BASE_FRI:BASE_MON_THU)*(pct/100);
+  const base=isFriLike(y,m,d,hols)?BASE_FRI:BASE_MON_THU;
+  // fixedDay: the day off returns 0, working days stay at full 100% hours
+  // (e.g. 80% with Mon off = 4 days × 8h = 32h = 80% of 40h)
+  if(s.partTimeMode==="fixedDay"&&s.fixedDayOff){
+    if(new Date(y,m,d).getDay()===Number(s.fixedDayOff)&&pct<100)return 0;
+    return base; // full hours on working days
+  }
+  // freeWeek: working weeks use full hours (free week is entered as Teilzeitfrei manually)
+  if(s.partTimeMode==="freeWeek"){
+    return base; // full hours, free weeks handled via manual Teilzeitfrei entries
+  }
+  // default: scale by contract percentage
+  return base*(pct/100);
 }
 function calcBreak(gm){if(gm<=6*60)return 0;if(gm>9.5*60)return 45;return 30;}
 const pad=n=>String(n).padStart(2,"0");
@@ -219,13 +230,15 @@ function MainView({session,entries,adjustments,settings,syncing,lastSync,onSaveE
       newAdjs=newAdjs.filter(a=>!(a.date===key&&a.note&&a.note.startsWith("Überstundenfrei")));
     }
 
-    // Dienstfrei (manual or auto): book soll hours as abgefeiert
+    // Dienstfrei (manual or auto): book 8h (standard day) as abgefeiert, only if date <= today
     if(data.shiftType==="DIENSTFREI"){
-      const daySoll=getDailySoll(y,m,d,hols,settings);
-      if(daySoll>0){
+      const today2=new Date();today2.setHours(23,59,59,999);
+      const entryDate=new Date(y,m,d);
+      if(entryDate<=today2){
+        const dfHours=8.0; // always 8h standard regardless of contract %
         const dfNote=data.autoNote||"Dienstfrei";
         newAdjs=newAdjs.filter(a=>!(a.date===key&&a.note===dfNote));
-        newAdjs.push({date:key,hours:parseFloat(daySoll.toFixed(4)),type:"abgefeiert",note:dfNote});
+        newAdjs.push({date:key,hours:dfHours,type:"abgefeiert",note:dfNote});
       }
     } else {
       // Remove Dienstfrei auto-adjustment if shift changed away
@@ -251,7 +264,7 @@ function MainView({session,entries,adjustments,settings,syncing,lastSync,onSaveE
         }
         if(nextSoll>0){
           newAdjs=newAdjs.filter(a=>!(a.date===nextKey&&a.note==="Spätdienstfrei"));
-          newAdjs.push({date:nextKey,hours:parseFloat(nextSoll.toFixed(4)),type:"abgefeiert",note:"Spätdienstfrei"});
+          newAdjs.push({date:nextKey,hours:8.0,type:"abgefeiert",note:"Spätdienstfrei"});
         }
       }
     } else {
@@ -293,8 +306,10 @@ function MainView({session,entries,adjustments,settings,syncing,lastSync,onSaveE
 
   const monthlyData=useMemo(()=>MS.map((_,m2)=>monthAgg(year,m2)),[year,monthAgg]);
   const allOT=useMemo(()=>computeOTUpToToday(entries,settings,today),[entries,JSON.stringify(settings),today.toDateString()]);
-  const allOTWithCarryover=allOT+(settings.overtimeCarryover||0)-adjustments.reduce((s,a)=>s+a.hours,0);
-  const yearAdj=adjustments.filter(a=>new Date(a.date).getFullYear()===year);
+  const todayStr=todayRaw.toISOString().slice(0,10);
+  const effectiveAdjs=adjustments.filter(a=>a.date<=todayStr);
+  const allOTWithCarryover=allOT+(settings.overtimeCarryover||0)-effectiveAdjs.reduce((s,a)=>s+a.hours,0);
+  const yearAdj=adjustments.filter(a=>new Date(a.date).getFullYear()===year&&a.date<=todayStr);
   const yearAdjTotal=yearAdj.reduce((s,a)=>s+a.hours,0);
   const yearOvertime=monthlyData.reduce((s,m)=>s+m.overtime,0);
   const yearPaidExtra=monthlyData.reduce((s,m)=>s+m.paidExtra,0);
@@ -369,8 +384,8 @@ function MainView({session,entries,adjustments,settings,syncing,lastSync,onSaveE
                     <div style={{display:"flex",gap:2}}>{holEve&&<span style={{fontSize:7,color:C.purple,fontWeight:700}}>VFT</span>}{hol&&<span style={{fontSize:7,color:C.purple,fontWeight:700}}>FT</span>}</div>
                   </div>
                   {isDayOff&&!entry&&<div style={{fontSize:9,color:"#3D6B52",fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>🌿 TZ-frei</div>}
-                  {shift&&!shift.isOnCall&&!shift.noTimer&&(<div style={{overflow:"hidden"}}><div style={{fontSize:13,lineHeight:1.2}}>{shift.icon}<div style={{fontSize:9,color:shift.color,fontWeight:700,lineHeight:1.1}}>{({"TAGDIENST":"TD","LANGER_DIENST":"LD","LANGER_DIENST_WE":"LD-W","VISITENDIENST":"VD","SPAETDIENST":"SD","RUFBEREITSCHAFT":"Rufb","UEBERSTUNDENFREI":"ÜStF","TEILZEITFREI":"TZF","DIENSTFREI":"Frei","URLAUB":"Url","KRANK":"Krnk","FORTBILDUNG":"Fortb"})[entry.shiftType]||entry.shiftType}</div></div>{entry.endTime&&<div style={{fontSize:9,color:C.muted,whiteSpace:"nowrap"}}>{fmtT((SHIFTS[(isWE(year,month,d)||isHol(year,month,d,holidays))&&entry.shiftType==="LANGER_DIENST"?"LANGER_DIENST_WE":entry.shiftType]||SHIFTS[entry.shiftType]).getStart?.(isFriLike(year,month,d,holidays))||{h:0,m:0})}–{fmtT(entry.endTime)}</div>}{!isFuture&&ch?.overtime>0&&<div style={{fontSize:9,color:C.green,fontWeight:700}}>+{fmtH(ch.overtime)}</div>}{ch?.paidExtra>0&&<div style={{fontSize:8,color:C.amber,fontWeight:600}}>💶{fmtH(ch.paidExtra)}</div>}</div>)}
-                  {shift?.noTimer&&<div style={{fontSize:13,lineHeight:1.2}}>{shift.icon}<div style={{fontSize:9,color:shift.color,fontWeight:700,lineHeight:1.1}}>{({"UEBERSTUNDENFREI":"ÜStF","TEILZEITFREI":"TZF","DIENSTFREI":"Frei","URLAUB":"Url","KRANK":"Krnk","FORTBILDUNG":"Fortb","RUFBEREITSCHAFT":"Rufb","RUFBEREITSCHAFT":"Rufb"})[entry.shiftType]||entry.shiftType}</div></div>}
+                  {shift&&!shift.isOnCall&&!shift.noTimer&&(<div style={{overflow:"hidden"}}><div style={{fontSize:13,lineHeight:1.2}}>{shift.icon}<div style={{fontSize:9,color:shift.color,fontWeight:700,lineHeight:1.1}}>{({"TAGDIENST":"TD","LANGER_DIENST":"LD","LANGER_DIENST_WE":"LD-W","VISITENDIENST":"VD","SPAETDIENST":"SD","RUFBEREITSCHAFT":"Rufb","UEBERSTUNDENFREI":"ÜStF","TEILZEITFREI":"TZF","DIENSTFREI":"DF","URLAUB":"Url","KRANK":"Krnk","FORTBILDUNG":"Fortb"})[entry.shiftType]||entry.shiftType}</div></div>{entry.endTime&&<div style={{fontSize:9,color:C.muted,whiteSpace:"nowrap"}}>{fmtT((SHIFTS[(isWE(year,month,d)||isHol(year,month,d,holidays))&&entry.shiftType==="LANGER_DIENST"?"LANGER_DIENST_WE":entry.shiftType]||SHIFTS[entry.shiftType]).getStart?.(isFriLike(year,month,d,holidays))||{h:0,m:0})}–{fmtT(entry.endTime)}</div>}{!isFuture&&ch?.overtime>0&&<div style={{fontSize:9,color:C.green,fontWeight:700}}>+{fmtH(ch.overtime)}</div>}{ch?.paidExtra>0&&<div style={{fontSize:8,color:C.amber,fontWeight:600}}>💶{fmtH(ch.paidExtra)}</div>}</div>)}
+                  {shift?.noTimer&&<div style={{fontSize:13,lineHeight:1.2}}>{shift.icon}<div style={{fontSize:9,color:shift.color,fontWeight:700,lineHeight:1.1}}>{({"UEBERSTUNDENFREI":"ÜStF","TEILZEITFREI":"TZF","DIENSTFREI":"DF","URLAUB":"Url","KRANK":"Krnk","FORTBILDUNG":"Fortb","RUFBEREITSCHAFT":"Rufb","RUFBEREITSCHAFT":"Rufb"})[entry.shiftType]||entry.shiftType}</div></div>}
                   {shift?.isOnCall&&<div style={{fontSize:10,color:shift.color,fontWeight:700,whiteSpace:"nowrap"}}>📞{ch?.onCallHours>0&&<span style={{color:C.amber,fontSize:9}}>{fmtH(ch.onCallHours)}</span>}</div>}
                 </div>);
               })}
@@ -413,15 +428,19 @@ function MainView({session,entries,adjustments,settings,syncing,lastSync,onSaveE
           <div style={{fontSize:10,color:C.muted,fontWeight:600}}>ABBUCHUNGEN {year}</div>
           <button onClick={()=>{setAdjForm({date:`${year}-01-01`,hours:"",type:"abgefeiert",note:""});setAdjModal(true);}} style={{background:C.primaryLight,border:`1px solid ${C.primary}`,color:C.primaryText,borderRadius:8,padding:"4px 10px",fontSize:12,fontWeight:600}}>+ Eintrag</button>
         </div>
-        {yearAdj.length===0&&<div style={{color:C.faint,fontSize:13,textAlign:"center",padding:"10px 0"}}>Keine Abbuchungen für {year}</div>}
-        {yearAdj.map((a,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 2px",borderRadius:7}}>
-          <div style={{width:7,height:7,borderRadius:"50%",background:a.type==="abgefeiert"?C.green:C.amber,flexShrink:0}}/>
-          <div style={{fontSize:11,color:C.muted,minWidth:72,flexShrink:0}}>{new Date(a.date).toLocaleDateString("de-DE")}</div>
-          <div style={{flex:1,fontSize:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.note||"–"}</div>
-          <div style={{fontSize:10,fontWeight:600,padding:"2px 6px",borderRadius:20,flexShrink:0,color:a.type==="abgefeiert"?C.green:C.amber,background:a.type==="abgefeiert"?C.greenBg:C.amberBg}}>{a.type==="abgefeiert"?"Abgefeiert":"Ausgezahlt"}</div>
-          <div style={{fontSize:11,color:C.red,fontWeight:600,minWidth:40,textAlign:"right",flexShrink:0}}>-{fmtH(a.hours)}</div>
-          <button onClick={()=>onSaveAdjustments(adjustments.filter((_,j)=>j!==adjustments.indexOf(a)))} style={{background:"none",border:"none",color:C.faint,fontSize:18,lineHeight:1,flexShrink:0}}>×</button>
-        </div>))}
+        {adjustments.filter(a=>new Date(a.date).getFullYear()===year).length===0&&<div style={{color:C.faint,fontSize:13,textAlign:"center",padding:"10px 0"}}>Keine Abbuchungen für {year}</div>}
+        {adjustments.filter(a=>new Date(a.date).getFullYear()===year).sort((a,b)=>a.date.localeCompare(b.date)).map((a,i)=>{
+          const isFuture=a.date>todayStr;
+          return(<div key={i} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 2px",borderRadius:7,opacity:isFuture?0.45:1}}>
+            <div style={{width:7,height:7,borderRadius:"50%",background:a.type==="abgefeiert"?C.green:C.amber,flexShrink:0}}/>
+            <div style={{fontSize:11,color:C.muted,minWidth:72,flexShrink:0}}>{new Date(a.date).toLocaleDateString("de-DE")}</div>
+            <div style={{flex:1,fontSize:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.note||"–"}</div>
+            {isFuture&&<div style={{fontSize:9,color:C.faint,flexShrink:0}}>geplant</div>}
+            <div style={{fontSize:10,fontWeight:600,padding:"2px 6px",borderRadius:20,flexShrink:0,color:a.type==="abgefeiert"?C.green:C.amber,background:a.type==="abgefeiert"?C.greenBg:C.amberBg}}>{a.type==="abgefeiert"?"Abgefeiert":"Ausgezahlt"}</div>
+            <div style={{fontSize:11,color:C.red,fontWeight:600,minWidth:40,textAlign:"right",flexShrink:0}}>-{fmtH(a.hours)}</div>
+            <button onClick={()=>onSaveAdjustments(adjustments.filter((_,j)=>adjustments.indexOf(a)!==j))} style={{background:"none",border:"none",color:C.faint,fontSize:18,lineHeight:1,flexShrink:0}}>×</button>
+          </div>);
+        })}
       </div>
     </div>)}
 
@@ -467,7 +486,11 @@ function SettingsView({settings,onSave}){
     <h2 style={{fontSize:17,fontWeight:700,color:C.text,marginBottom:10}}>Einstellungen</h2>
     <div style={card}><div style={sl}>STELLENUMFANG</div>
       <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>{[100,90,80,75,60,50].map(p=>(<button key={p} onClick={()=>setPct(p)} style={{padding:"7px 12px",borderRadius:9,fontSize:13,fontWeight:600,background:pct===p?C.primaryLight:C.bg,border:`1.5px solid ${pct===p?C.primary:C.border}`,color:pct===p?C.primaryText:C.muted}}>{p}%</button>))}<input type="number" min={10} max={100} value={pct} onChange={e=>setPct(e.target.value)} style={{width:62,padding:"7px",borderRadius:9,border:`1.5px solid ${C.border}`,background:C.bg,fontSize:13,color:C.text,textAlign:"center"}}/></div>
-      <div style={{background:C.primaryLight,borderRadius:8,padding:"8px 11px",fontSize:12,color:C.primaryText}}>Bei {pct}%: Mo–Do <strong>{fmtH(8.0*pct/100)}</strong> · Fr/VFT <strong>{fmtH(7.5*pct/100)}</strong></div>
+      <div style={{background:C.primaryLight,borderRadius:8,padding:"8px 11px",fontSize:12,color:C.primaryText}}>{ptMode==="fixedDay"
+          ?`${["","Mo","Di","Mi","Do","Fr"][fixedDay||1]} frei · übrige Tage: Mo–Do 8h, Fr 8h (${pct}% = 1 Tag frei)`
+          :ptMode==="freeWeek"
+          ?`Freie Woche manuell · Arbeitstage immer 8h (${pct}% = ca. jede ${Math.round(5/((100-pct)/100)/5)*5}. Woche frei)`
+          :`Bei ${pct}%: Mo–Do ${fmtH(8.0*pct/100)} · Fr ${fmtH(8.0*pct/100)}`}</div>
     </div>
     <div style={card}><div style={sl}>TEILZEITMODELL</div>
       <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:10}}>{[["none","Kein festes Modell"],["fixedDay","Fester freier Tag pro Woche"],["freeWeek","Freie Woche (manuell)"]].map(([v,l])=>(<button key={v} onClick={()=>setPtMode(v)} style={{padding:"8px 12px",borderRadius:9,fontSize:13,textAlign:"left",fontWeight:ptMode===v?700:400,background:ptMode===v?C.primaryLight:C.bg,border:`1.5px solid ${ptMode===v?C.primary:C.border}`,color:ptMode===v?C.primaryText:C.muted}}>{l}</button>))}</div>
@@ -502,19 +525,48 @@ function TI({h,m,onH,onM}){
 }
 
 
+function calcOnCallHours(startH,startM,endH,endM){
+  if(startH===""||startM===""||endH===""||endM==="")return 0;
+  let startMin=Number(startH)*60+Number(startM);
+  let endMin=Number(endH)*60+Number(endM);
+  if(endMin<=startMin)endMin+=24*60; // overnight
+  return parseFloat(((endMin-startMin)/60).toFixed(2));
+}
+
 function OnCallActivations({activations,onChange,label}){
-  const add=()=>onChange(prev=>[...prev,{hours:"",note:""}]);
-  const upd=(i,field,val)=>onChange(prev=>prev.map((a,j)=>j===i?{...a,[field]:val}:a));
+  const pad2=n=>String(n||0).padStart(2,"0");
+  const add=()=>onChange(prev=>[...prev,{startH:"",startM:"",endH:"",endM:"",note:"",hours:0}]);
+  const upd=(i,field,val)=>onChange(prev=>prev.map((a,j)=>{
+    if(j!==i)return a;
+    const updated={...a,[field]:val};
+    updated.hours=calcOnCallHours(updated.startH,updated.startM,updated.endH,updated.endM);
+    return updated;
+  }));
   const del=(i)=>onChange(prev=>prev.filter((_,j)=>j!==i));
-  const inp={background:"#FDF0E8",border:`1.5px solid #E8C8AD`,borderRadius:8,padding:"7px 10px",fontSize:13,color:"#2D1A0E",fontFamily:"inherit"};
+  const inp={background:"#FDF0E8",border:"1.5px solid #E8C8AD",borderRadius:7,padding:"6px 8px",fontSize:14,fontWeight:700,color:"#2D1A0E",textAlign:"center",width:46,fontFamily:"inherit"};
   return(<div style={{marginBottom:10}}>
-    <div style={{fontSize:11,color:"#7C3AED",fontWeight:600,marginBottom:6}}>{label||"📞 RUFBEREITSCHAFT – EINSÄTZE (ausgezahlt)"}</div>
-    {activations.map((a,i)=>(<div key={i} style={{display:"flex",gap:6,marginBottom:6,alignItems:"center"}}>
-      <input type="number" min={0} max={24} step={0.5} value={a.hours} onChange={e=>upd(i,"hours",e.target.value)} placeholder="Std." style={{...inp,width:64}}/>
-      <input type="text" value={a.note} onChange={e=>upd(i,"note",e.target.value)} placeholder="Notiz (optional)" style={{...inp,flex:1}}/>
-      <button onClick={()=>del(i)} style={{background:"none",border:"none",color:"#B07A5A",fontSize:18,padding:"0 2px"}}>×</button>
-    </div>))}
-    <button onClick={add} style={{fontSize:11,color:"#7C3AED",background:"none",border:`1px dashed #C4B5FD`,borderRadius:7,padding:"5px 12px",width:"100%"}}>+ Einsatz hinzufügen</button>
+    <div style={{fontSize:11,color:"#4C1D95",fontWeight:600,marginBottom:6}}>{label||"📞 RUFBEREITSCHAFT – EINSÄTZE (ausgezahlt)"}</div>
+    {activations.map((a,i)=>(
+      <div key={i} style={{marginBottom:8,background:"#F5F3FF",borderRadius:9,padding:"8px 10px"}}>
+        <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:5}}>
+          <div style={{fontSize:10,color:"#7C3AED",fontWeight:600,minWidth:34}}>START</div>
+          <input type="number" min={0} max={23} value={a.startH} onChange={e=>upd(i,"startH",e.target.value)} placeholder="hh" style={inp}/>
+          <span style={{fontWeight:700,color:"#7C3AED"}}>:</span>
+          <input type="number" min={0} max={59} value={a.startM} onChange={e=>upd(i,"startM",e.target.value)} placeholder="mm" style={inp}/>
+          <div style={{fontSize:10,color:"#7C3AED",fontWeight:600,marginLeft:4,minWidth:28}}>ENDE</div>
+          <input type="number" min={0} max={23} value={a.endH} onChange={e=>upd(i,"endH",e.target.value)} placeholder="hh" style={inp}/>
+          <span style={{fontWeight:700,color:"#7C3AED"}}>:</span>
+          <input type="number" min={0} max={59} value={a.endM} onChange={e=>upd(i,"endM",e.target.value)} placeholder="mm" style={inp}/>
+          <button onClick={()=>del(i)} style={{background:"none",border:"none",color:"#B07A5A",fontSize:18,marginLeft:"auto"}}>×</button>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {a.hours>0&&<div style={{fontSize:12,color:"#4C1D95",fontWeight:700,minWidth:50}}>= {a.hours}h</div>}
+          {a.hours>0&&a.endH!=""&&Number(a.endH)<Number(a.startH)&&<div style={{fontSize:10,color:"#7C3AED"}}>(über Mitternacht)</div>}
+          <input type="text" value={a.note||""} onChange={e=>upd(i,"note",e.target.value)} placeholder="Notiz (optional)" style={{flex:1,background:"#EDE9FE",border:"1px solid #C4B5FD",borderRadius:7,padding:"5px 9px",fontSize:12,color:"#2D1A0E",fontFamily:"inherit"}}/>
+        </div>
+      </div>
+    ))}
+    <button onClick={add} style={{fontSize:11,color:"#4C1D95",background:"none",border:"1px dashed #C4B5FD",borderRadius:7,padding:"5px 12px",width:"100%"}}>+ Einsatz hinzufügen</button>
   </div>);
 }
 
@@ -524,7 +576,11 @@ function DayModal({day,entry,holidays,settings,shiftTimes,SHIFTS,onSave,onDelete
   const[shiftType,setShiftType]=useState(entry?.shiftType==="LANGER_DIENST_WE"?"LANGER_DIENST":entry?.shiftType||(we?"LANGER_DIENST":"TAGDIENST"));
   const[endH,setEndH]=useState(entry?.endTime?.h??"");const[endM,setEndM]=useState(entry?.endTime?.m??"");
   const[onCallH,setOnCallH]=useState(entry?.onCallActivationHours??"");
-  const[onCallActivations,setOnCallActivations]=useState(entry?.onCallActivations||(entry?.onCallActivationHours?[{hours:entry.onCallActivationHours,note:""}]:[]));
+  const[onCallActivations,setOnCallActivations]=useState(
+    entry?.onCallActivations
+      ?entry.onCallActivations.map(a=>({startH:a.startH??"",startM:a.startM??"",endH:a.endH??"",endM:a.endM??"",hours:a.hours||0,note:a.note||""}))
+      :(entry?.onCallActivationHours?[{startH:"",startM:"",endH:"",endM:"",hours:entry.onCallActivationHours,note:""}]:[])
+  );
   const[note,setNote]=useState(entry?.note||"");
   const shift=SHIFTS[shiftType];const startT=shift?.getStart?.(fri);const fixedEnd=shift?.fixedEnd?.();const defaultEnd=fixedEnd||shift?.getEnd?.(fri);
   const endTime=(endH!==""&&endM!=="")?{h:+endH,m:+endM}:defaultEnd;
